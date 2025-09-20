@@ -40,36 +40,30 @@ class LSTM(nn.Module):
 
 		return short_term_memory, long_term_memory
 
-	def get_params(self):
-		return self.create_gate.get_params() + self.output_gate.get_params() + self.forget_gate.get_params()
-
 # (B,1)
 class ForgetGate(nn.Module):
 	def __init__(self, input_size, memory_size):
 		super(ForgetGate, self).__init__()
-		self.short_term_memory_weight = torch.rand(memory_size, memory_size, requires_grad=True)
-		self.input_weight = torch.rand(input_size, memory_size, requires_grad=True)
-		self.input_bias = torch.rand(memory_size, requires_grad=True)
+		self.short_term_memory_weight = nn.Parameter(torch.randn(memory_size, memory_size) * 0.1)
+		self.input_weight = nn.Parameter(torch.randn(input_size, memory_size) * 0.1)
+		self.input_bias = nn.Parameter(torch.randn(memory_size) * 0.1)
 
 		self.sigmoid = nn.Sigmoid()
 
 	def forward(self, short_term, x):
 		return self.sigmoid(short_term @ self.short_term_memory_weight + x @ self.input_weight + self.input_bias)
 
-	def get_params(self):
-		return [self.short_term_memory_weight, self.input_weight, self.input_bias]
-
 # (B,Output)
 class InputGate(nn.Module):
 	def __init__(self, input_size, memory_size):
 		super(InputGate, self).__init__()
-		self.short_term_memory_weight_pot = torch.rand(memory_size, memory_size, requires_grad=True)
-		self.input_weight_pot = torch.rand(input_size, memory_size, requires_grad=True)
-		self.input_bias_pot = torch.rand(memory_size, requires_grad=True)
+		self.short_term_memory_weight_pot = nn.Parameter(torch.randn(memory_size, memory_size) * 0.1)
+		self.input_weight_pot = nn.Parameter(torch.randn(input_size, memory_size) * 0.1)
+		self.input_bias_pot = nn.Parameter(torch.randn(memory_size) * 0.1)
 
-		self.short_term_memory_weight_perc = torch.rand(memory_size, memory_size, requires_grad=True)
-		self.input_weight_perc = torch.rand(input_size, memory_size, requires_grad=True)
-		self.input_bias_perc = torch.rand(memory_size, requires_grad=True)
+		self.short_term_memory_weight_perc = nn.Parameter(torch.randn(memory_size, memory_size) * 0.1)
+		self.input_weight_perc = nn.Parameter(torch.randn(input_size, memory_size) * 0.1)
+		self.input_bias_perc = nn.Parameter(torch.randn(memory_size) * 0.1)
 
 		self.tanh = nn.Tanh()
 		self.sigmoid = nn.Sigmoid()
@@ -88,23 +82,14 @@ class InputGate(nn.Module):
 		return answer
 
 
-	def get_params(self):
-		return [
-			self.short_term_memory_weight_perc,
-			self.short_term_memory_weight_pot,
-			self.input_weight_perc,
-			self.input_weight_pot,
-			self.input_bias_perc,
-			self.input_bias_pot]
-
 # (B, Output)
 class OutputGate(nn.Module):
 	def __init__(self, input_size, memory_size):
 		super(OutputGate, self).__init__()
 
-		self.input_weight = torch.rand(input_size, memory_size, requires_grad=True)
-		self.input_bias = torch.rand(memory_size, requires_grad=True)
-		self.short_term_memory_weight = torch.rand(memory_size, memory_size, requires_grad=True)
+		self.input_weight = nn.Parameter(torch.randn(input_size, memory_size) * 0.1)
+		self.input_bias = nn.Parameter(torch.randn(memory_size) * 0.1)
+		self.short_term_memory_weight = nn.Parameter(torch.randn(memory_size, memory_size) * 0.1)
 
 		self.tanh = nn.Tanh()
 		self.sigmoid = nn.Sigmoid()
@@ -120,11 +105,8 @@ class OutputGate(nn.Module):
 		)
 		return new_short_term
 
-	def get_params(self):
-		return [self.input_weight, self.input_bias, self.short_term_memory_weight]
 
-
-model = LSTM(1,1)
+model = LSTM(4,1)
 data = [
 	[1,2,3,5,7],
 	[2,3,6,8,10],
@@ -133,14 +115,14 @@ data = [
 true_answer = [9,13,-1]
 # answer = model(torch.tensor(data, dtype=torch.float))
 
-optimizer = Adam(model.get_params(), lr=1e-2)
+optimizer = Adam(model.parameters(), lr=1e-2)
 scheduler = ReduceLROnPlateau(optimizer, 'min', patience=5)
 
 criterion = MSELoss()
 losses = []
 for i in range(2000):
 	short,_ = model(torch.tensor(data, dtype=torch.float))
-	loss = criterion(short.squeeze(1), torch.tensor(true_answer, dtype=torch.float))
+	loss = criterion(short.squeeze(1).sum(axis=1), torch.tensor(true_answer, dtype=torch.float))
 	optimizer.zero_grad()
 	loss.backward()
 	optimizer.step()
@@ -148,7 +130,7 @@ for i in range(2000):
 	losses.append(loss.item())
 
 final_answer = model(torch.tensor(data, dtype=torch.float))
-print(final_answer[0].squeeze(1), final_answer[1].squeeze(1), sep='\n')
+print(final_answer[0].squeeze(1).sum(axis=1), final_answer[1].squeeze(1), sep='\n')
 plt.plot(losses)
 plt.show()
 
