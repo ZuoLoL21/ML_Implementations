@@ -31,8 +31,8 @@ class L_Layer_LSTM(nn.Module):
 		for lstm in self.LSTMs:
 			final_hidden, tmp_inputs = lstm(inputs)
 			inputs = torch.stack(tmp_inputs, dim=1)
-		return final_hidden, None
 
+		return final_hidden, None
 
 class LSTM(nn.Module):
 	# (B,1)
@@ -143,7 +143,7 @@ def test_model(model, data, true_answer, label=""):
 
 	criterion = MSELoss()
 	losses = []
-	for i in range(2000):
+	for i in range(1000):
 		short, _ = model(torch.tensor(data, dtype=torch.float))
 		loss = criterion(short.squeeze(1), torch.tensor(true_answer, dtype=torch.float))
 		optimizer.zero_grad()
@@ -153,11 +153,11 @@ def test_model(model, data, true_answer, label=""):
 		losses.append(loss.item())
 
 	final_answer = model(torch.tensor(data, dtype=torch.float))
-	print(final_answer[0].squeeze(1), sep='\n')
+	print(f"Done with ${label}: Final answer ${str(final_answer[0].squeeze(1).tolist())}")
 	plt.plot(losses, label=label)
 
 model_lstm = LSTM(1,1)
-model_l_layer = L_Layer_LSTM(1,10,1,2)
+model_l_layer = L_Layer_LSTM(1,8,1,3)
 
 x = [
 	[1, 0.5, 0.25, 1],
@@ -166,7 +166,6 @@ x = [
 	[1,0.75,0.5,0.25]
 ]
 y = [1,0, 0.5,1]
-
 
 test_model(model_l_layer, x, y, label="Layered LSTM")
 test_model(model_lstm, x,y, label="LSTM")
