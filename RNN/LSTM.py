@@ -44,6 +44,7 @@ class LSTM(nn.Module):
 class ForgetGate(nn.Module):
 	def __init__(self, input_size, memory_size):
 		super(ForgetGate, self).__init__()
+
 		self.short_term_memory_weight = nn.Parameter(torch.randn(memory_size, memory_size) * 0.1)
 		self.input_weight = nn.Parameter(torch.randn(input_size, memory_size) * 0.1)
 		self.input_bias = nn.Parameter(torch.randn(memory_size) * 0.1)
@@ -57,6 +58,7 @@ class ForgetGate(nn.Module):
 class InputGate(nn.Module):
 	def __init__(self, input_size, memory_size):
 		super(InputGate, self).__init__()
+
 		self.short_term_memory_weight_pot = nn.Parameter(torch.randn(memory_size, memory_size) * 0.1)
 		self.input_weight_pot = nn.Parameter(torch.randn(input_size, memory_size) * 0.1)
 		self.input_bias_pot = nn.Parameter(torch.randn(memory_size) * 0.1)
@@ -80,7 +82,6 @@ class InputGate(nn.Module):
 						self.input_bias_pot)
 		)
 		return answer
-
 
 # (B, Output)
 class OutputGate(nn.Module):
@@ -106,23 +107,21 @@ class OutputGate(nn.Module):
 		return new_short_term
 
 
-model = LSTM(4,1)
+model = LSTM(1,1)
 data = [
-	[1,2,3,5,7],
-	[2,3,6,8,10],
-	[10,9,6,4,2],
+	[1, 0.5, 0.25, 1],
+	[0, 0.5, 0.25, 1],
 ]
-true_answer = [9,13,-1]
-# answer = model(torch.tensor(data, dtype=torch.float))
+true_answer = [1,0]
 
-optimizer = Adam(model.parameters(), lr=1e-2)
+optimizer = Adam(model.parameters(), lr=1e-3)
 scheduler = ReduceLROnPlateau(optimizer, 'min', patience=5)
 
 criterion = MSELoss()
 losses = []
-for i in range(2000):
+for i in range(10000):
 	short,_ = model(torch.tensor(data, dtype=torch.float))
-	loss = criterion(short.squeeze(1).sum(axis=1), torch.tensor(true_answer, dtype=torch.float))
+	loss = criterion(short.squeeze(1), torch.tensor(true_answer, dtype=torch.float))
 	optimizer.zero_grad()
 	loss.backward()
 	optimizer.step()
@@ -130,7 +129,7 @@ for i in range(2000):
 	losses.append(loss.item())
 
 final_answer = model(torch.tensor(data, dtype=torch.float))
-print(final_answer[0].squeeze(1).sum(axis=1), final_answer[1].squeeze(1), sep='\n')
+print(final_answer[0].squeeze(1), final_answer[1].squeeze(1), sep='\n')
 plt.plot(losses)
 plt.show()
 
